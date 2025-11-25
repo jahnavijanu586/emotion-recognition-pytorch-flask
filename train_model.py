@@ -4,14 +4,12 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
-# ----- CONFIG -----
 DATA_DIR = "faces_recog/dataset/Training/Training"
 MODEL_PATH = "emotion_model.pth"
 BATCH_SIZE = 32
 EPOCHS = 10
 LR = 0.001
 
-# ----- Data Loading -----
 transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.Resize((48, 48)),
@@ -23,7 +21,6 @@ loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 classes = dataset.classes
 print("Classes:", classes)
 
-# ----- CNN Model -----
 class EmotionCNN(nn.Module):
     def __init__(self):
         super(EmotionCNN, self).__init__()
@@ -47,7 +44,6 @@ model = EmotionCNN()
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=LR)
 
-# ----- Training -----
 for epoch in range(EPOCHS):
     epoch_loss = 0
     for images, labels in loader:
@@ -60,7 +56,6 @@ for epoch in range(EPOCHS):
 
     print(f"Epoch {epoch+1}/{EPOCHS} - Loss: {epoch_loss:.4f}")
 
-# ----- Save Model -----
 torch.save({
     "model_state": model.state_dict(),
     "classes": classes
