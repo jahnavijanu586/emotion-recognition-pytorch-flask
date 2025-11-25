@@ -8,6 +8,10 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 
+# ----------------------
+# Config / Model paths
+# ----------------------
+# The loader will try these candidate locations (order matters)
 CANDIDATE_MODEL_PATHS = [
     "faces_recog/emotion_model.pth",
     "faces_recog/model/emotion_model.pth",
@@ -29,6 +33,9 @@ if MODEL_PATH is None:
         "\n".join(CANDIDATE_MODEL_PATHS)
     )
 
+# ----------------------
+# Define model (exact same architecture as training)
+# ----------------------
 class EmotionCNN(nn.Module):
     def __init__(self, num_classes):
         super(EmotionCNN, self).__init__()
@@ -48,6 +55,9 @@ class EmotionCNN(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+# ----------------------
+# Load checkpoint (state_dict + classes)
+# ----------------------
 checkpoint = torch.load(MODEL_PATH, map_location=torch.device('cpu'))
 
 if "model_state" not in checkpoint or "classes" not in checkpoint:
@@ -57,7 +67,8 @@ if "model_state" not in checkpoint or "classes" not in checkpoint:
 classes = checkpoint["classes"]
 num_classes = len(classes)
 
-
+# Recreate the same network, but final layer must have num_classes output:
+# We'll create the network manually to replace the last layer correctly.
 class EmotionCNN_Load(nn.Module):
     def __init__(self, num_classes):
         super(EmotionCNN_Load, self).__init__()
@@ -84,12 +95,18 @@ model.eval()
 print(f"Loaded model from: {MODEL_PATH}")
 print("Classes:", classes)
 
+# ----------------------
+# Transform (must match training)
+# ----------------------
 transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.Resize((48, 48)),
     transforms.ToTensor()
 ])
 
+# ----------------------
+# Flask app
+# ----------------------
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
 def predict_pil_image(pil_img):

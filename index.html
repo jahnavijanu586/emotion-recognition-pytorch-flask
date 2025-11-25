@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emotion Detection</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        #video { border: 2px solid black; width: 300px; }
+        #captured { margin-top: 10px; width: 300px; border: 2px solid #333; }
+        button { padding: 10px 20px; margin-top: 10px; }
+        #result { font-size: 22px; margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+
+<body>
+    <h2>Emotion Detection</h2>
+
+    <video id="video" autoplay></video>
+    <br>
+    <button onclick="capturePhoto()">Capture</button>
+
+    <br>
+    <img id="captured">
+
+    <div id="result"></div>
+
+    <script>
+        const video = document.getElementById("video");
+        const captured = document.getElementById("captured");
+
+        // ---- START CAMERA ----
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                alert("Camera error: " + err);
+            });
+
+        // ---- CAPTURE IMAGE ----
+        function capturePhoto() {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0);
+
+            const imageData = canvas.toDataURL("image/jpeg");
+            captured.src = imageData;
+
+            sendToServer(imageData);
+        }
+
+        // ---- SEND TO BACKEND ----
+        function sendToServer(imageData) {
+            fetch("/capture", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(async (response) => {
+                const text = await response.text();   // get raw text
+                try {
+                    return JSON.parse(text);          // safely parse JSON
+                } catch (e) {
+                    console.error("JSON parse error:", text);
+                    throw new Error("Invalid JSON from server");
+                }
+            })
+            .then(data => {
+                if (data.error) {
+                    document.getElementById("result").innerHTML =
+                        "<span style='color:red;'>Error: " + data.error + "</span>";
+                } else {
+                    document.getElementById("result").innerHTML =
+                        "Predicted Emotion: <b>" + data.emotion + "</b>";
+                }
+            })
+            .catch(err => {
+                console.error("Error:", err);
+                document.getElementById("result").innerHTML =
+                    "<span style='color:red;'>Prediction failed.</span>";
+            });
+        }
+    </script>
+
+</body>
+</html>
